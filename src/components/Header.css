@@ -1,0 +1,13 @@
+.header {
+  padding: 1em;
+}
+nav {
+  display: flex;
+  align-items: center;
+}
+nav .nav-right {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 1.5em;
+}

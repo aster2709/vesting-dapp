@@ -1,0 +1,22 @@
+.vesting-table {
+  width: 80vw;
+  margin: auto;
+  border-collapse: collapse;
+}
+.vesting-table thead {
+  text-align: left;
+  border-bottom: 1px solid #fff5f4;
+}
+.vesting-table th,
+.vesting-table td {
+  padding: 1em;
+}
+.vesting-table td {
+  border-right: 1px solid #fff5f4;
+}
+.vesting-table tr td:last-of-type {
+  border-right: none;
+}
+.vesting-table tbody tr {
+  border-bottom: 1px solid #fff5f4;
+}

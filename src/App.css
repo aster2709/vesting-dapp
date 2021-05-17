@@ -1,10 +1,15 @@
 @import url("https://fonts.googleapis.com/css2?family=Michroma&display=swap");
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   font-family: "Michroma", sans-serif;
   background: url(./assets/bg.jpg);
   background-size: cover;
   color: white;
+  word-spacing: 4px;
 }
 
 .title {
@@ -12,4 +17,30 @@ body {
 }
 .description {
   text-align: center;
+}
+.light-pink {
+  color: #f1a7a3;
+}
+.btn {
+  cursor: pointer;
+  outline: none;
+  border: none;
+  background: none;
+  font-family: "Michroma";
+  border: 2px solid #f1a7a3;
+  color: white;
+  width: 8rem;
+  padding: 0.2em 1.5em;
+  transition: all 0.3s ease;
+}
+.btn:hover {
+  background: #f1a7a3;
+}
+.btn-pending {
+  pointer-events: none;
+  background: #f1a7a3;
+}
+.btn-claimed {
+  pointer-events: none;
+  background: #ff6961;
 }

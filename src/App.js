@@ -4,18 +4,19 @@ import Header from "./components/Header";
 import Table from "./components/Table";
 import web3 from "./ethereum/web3";
 import tokenAbi from "./ethereum/tokenAbi";
-import vestingContractAbi from "./ethereum/vestingContractAbi";
+import vestingAbi from "./ethereum/vestingContractAbi";
 
-let vestingInstance, tokenInstance;
+let vestingInstance, tokenInstance, intervalId;
+
 function App() {
   const [state, setState] = useState({
     connected: false,
     account: "",
-    bal: "",
+    metamaskBalance: "",
+    userTokenBalance: "",
     token: "",
-    vestingContractAddress: "0x7a61231e9C68c03db35d246692Ce24365bd5e54E",
-    vestingContractBalance: "",
-    userBalance: "",
+    vestingContractAddress: "0x68f2e4d09B2De91A5847A07e0B759f6B59bF882a",
+    vested: "",
     beneficiary: "",
     owner: "",
     releasedPeriods: "",
@@ -23,14 +24,16 @@ function App() {
     totalReleased: "",
     releaseAmountsAndTimeStamps: [],
   });
+  const [buttonArr, setButtonArr] = useState([]);
   useEffect(() => {
     async function fetchData() {
-      const accounts = await web3.eth.getAccounts();
+      const accounts = await window.ethereum.request({
+        method: "eth_accounts",
+      });
       vestingInstance = await new web3.eth.Contract(
-        vestingContractAbi,
+        vestingAbi,
         state.vestingContractAddress
       );
-
       const {
         beneficiary,
         owner,
@@ -38,71 +41,93 @@ function App() {
         token,
         totalPeriods,
         totalReleased,
-      } = await vestingInstance.methods
-        .getGlobalData()
-        .call({ from: accounts[0] });
+      } = await vestingInstance.methods.getGlobalData().call();
       tokenInstance = await new web3.eth.Contract(tokenAbi, token);
-      const vestingContractBalance = await tokenInstance.methods
-        .balanceOf(state.vestingContractAddress)
-        .call({ from: accounts[0] });
-      const temp = await Promise.all(
+
+      if (accounts.length) {
+        const metamaskBalance = await web3.eth.getBalance(accounts[0]);
+        const userTokenBalance = await tokenInstance.methods
+          .balanceOf(accounts[0])
+          .call({ from: accounts[0] });
+        setState((prevState) => {
+          return {
+            ...prevState,
+            metamaskBalance,
+            userTokenBalance,
+            account: accounts[0],
+            connected: true,
+          };
+        });
+      }
+
+      const releaseAmountsAndTimeStamps = await Promise.all(
         Array(+totalPeriods)
           .fill()
-          .map((x, i) =>
-            vestingInstance.methods.getPeriodData(i).call({ from: accounts[0] })
-          )
+          .map((x, i) => vestingInstance.methods.getPeriodData(i).call())
       );
+      let vested = releaseAmountsAndTimeStamps.reduce((acc, curr) => {
+        return acc + +web3.utils.fromWei(curr.amount, "ether");
+      }, 0);
+      vested = String(vested);
       setState((prevState) => {
         return {
           ...prevState,
+          token,
+          vested,
           beneficiary,
           owner,
           releasedPeriods,
-          token,
           totalPeriods,
           totalReleased,
-          releaseAmountsAndTimeStamps: temp,
-          vestingContractBalance,
+          releaseAmountsAndTimeStamps,
         };
       });
     }
     fetchData();
-  }, [state.vestingContractAddress]);
+  }, [state.vestingContractAddress, state.connected]);
+
+  if (!intervalId && state.releaseAmountsAndTimeStamps.length) {
+    intervalId = setInterval(function temp() {
+      const now = Date.now() / 1000;
+      const myArr = state.releaseAmountsAndTimeStamps.map(
+        (x) => now >= x.timestamp
+      );
+      setButtonArr(myArr);
+    }, 1000);
+  }
+
   const handleConnect = async () => {
     if (!state.connected) {
-      const accounts = await window.ethereum.request({
+      await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      const tokenInstance = await new web3.eth.Contract(tokenAbi, state.token);
-      const bal = await web3.eth.getBalance(accounts[0]);
-      const userBalance = await tokenInstance.methods
-        .balanceOf(accounts[0])
-        .call({ from: accounts[0] });
       setState((prevState) => {
         return {
           ...prevState,
           connected: true,
-          account: accounts[0],
-          bal: web3.utils.fromWei(bal, "ether").slice(0, 5),
-          userBalance,
-        };
-      });
-    } else {
-      setState((prevState) => {
-        return {
-          ...prevState,
-          connected: false,
-          account: "",
-          bal: "",
-          userBalance: "",
         };
       });
     }
   };
+
   const handleClaim = async () => {
     if (state.connected) {
       try {
         await vestingInstance.methods.release().send({ from: state.account });
+        const userTokenBalance = await tokenInstance.methods
+          .balanceOf(state.account)
+          .call();
+        const { releasedPeriods, totalReleased } = await vestingInstance.methods
+          .getGlobalData()
+          .call();
+        setState((prevState) => {
+          return {
+            ...prevState,
+            userTokenBalance,
+            releasedPeriods,
+            totalReleased,
+          };
+        });
       } catch (err) {
         console.log(err.message);
       }
@@ -112,21 +137,34 @@ function App() {
   };
   return (
     <div>
-      <Header handleConnect={handleConnect} state={state}></Header>
+      <Header handleConnect={handleConnect} state={state} web3={web3}></Header>
       <h1 className="title">Vesting Schedule</h1>
       <div className="description">
-        <p>Vesting Contract: {state.vestingContractAddress}</p>
         <p>
-          Your Balance:{" "}
-          {state.userBalance ? state.userBalance : "connect wallet"}
+          {" "}
+          <span className="light-pink">Vesting Contract</span> :{" "}
+          {state.vestingContractAddress}
         </p>
         <p>
-          Released/Vested:{" "}
-          {state.vestingContractBalance &&
-            `${state.totalReleased}/${state.vestingContractBalance}`}
+          <span className="light-pink">Your Balance</span> :{" "}
+          {state.userTokenBalance &&
+            web3.utils.fromWei(state.userTokenBalance, "ether")}{" "}
+          Tokens
+        </p>
+        <p>
+          <span className="light-pink">Released / Vested</span> :{" "}
+          {state.vested &&
+            `${web3.utils.fromWei(state.totalReleased, "ether")} / ${
+              state.vested
+            }`}
         </p>
       </div>
-      <Table state={state} web3={web3} handleClaim={handleClaim}></Table>
+      <Table
+        state={state}
+        web3={web3}
+        handleClaim={handleClaim}
+        buttonArr={buttonArr}
+      ></Table>
     </div>
   );
 }

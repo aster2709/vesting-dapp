@@ -11,3 +11,6 @@ nav .nav-right {
   margin-left: auto;
   gap: 1.5em;
 }
+.connected {
+  border-bottom: 2px solid lightgreen;
+}

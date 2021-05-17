@@ -44,3 +44,7 @@ body {
   pointer-events: none;
   background: #ff6961;
 }
+.btn-connect {
+  padding: 0.2em 0.5em;
+  width: 13em;
+}

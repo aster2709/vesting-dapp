@@ -25,7 +25,7 @@ const Header = ({ handleConnect, state, web3 }) => {
           {state.connected ? (
             <p className="connected">Connected</p>
           ) : (
-            <button onClick={handleConnect} className="btn">
+            <button onClick={handleConnect} className="btn btn-connect">
               Connect Wallet
             </button>
           )}

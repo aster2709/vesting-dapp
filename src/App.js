@@ -15,7 +15,7 @@ function App() {
     metamaskBalance: "",
     userTokenBalance: "",
     token: "",
-    vestingContractAddress: "0x68f2e4d09B2De91A5847A07e0B759f6B59bF882a",
+    vestingContractAddress: "0x3497181E2e7Da06cD7599723499C3da64C13Bb75",
     vested: "",
     beneficiary: "",
     owner: "",
